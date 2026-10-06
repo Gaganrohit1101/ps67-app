@@ -1,4 +1,4 @@
-import { BrowserProvider, JsonRpcProvider, Wallet, NonceManager, Contract } from '../vendor/ethers.js';
+import { BrowserProvider, JsonRpcProvider, Wallet, NonceManager, Contract } from 'ethers';
 import { API_BASE } from '../config.js';
 
 export class IdentityClient extends EventTarget {
