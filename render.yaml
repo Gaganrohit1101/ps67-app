@@ -20,9 +20,8 @@ services:
       - key: PUBLIC_HOSTED
         value: true
       - key: ALLOWED_HOSTS
-        value: "*"
+        value: ps67-backend.onrender.com,localhost,127.0.0.1
       - key: FRONTEND_ORIGINS
-        sync: false
         value: https://ps67-sovereign.onrender.com,https://ps67-atlas.onrender.com
 
   - type: web
@@ -36,12 +35,8 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_BASE
-        fromService:
-          type: web
-          name: ps67-backend
-          property: host
+        value: https://ps67-backend.onrender.com
       - key: VITE_ATLAS_URL
-        sync: false
         value: https://ps67-atlas.onrender.com
 
   - type: web
@@ -55,10 +50,6 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_BASE
-        fromService:
-          type: web
-          name: ps67-backend
-          property: host
+        value: https://ps67-backend.onrender.com
       - key: VITE_SOVEREIGN_URL
-        sync: false
         value: https://ps67-sovereign.onrender.com
