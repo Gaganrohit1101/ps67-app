@@ -10,7 +10,9 @@ for(const [bin,args] of [
   [process.execPath,['scripts/build-ui.mjs']],
   [process.execPath,['--test',...nodeTests]],
   [python,['tests/privacy.py']],
+  [python,['tests/dm_api.py']],
   [python,['tests/integration.py']],
+  [process.execPath,['tests/dm-live.mjs']],
 ]) {
   const result=spawnSync(bin,args,{cwd:root,stdio:'inherit',windowsHide:true});
   if(result.status!==0){console.error(result.error?.message||'Verification stopped at a failed check.');process.exit(result.status||1);}

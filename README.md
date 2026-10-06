@@ -178,3 +178,10 @@ Requirements come from uploaded PS67, handbook and group instructions.
 Technical references: [Kubo RPC](https://docs.ipfs.tech/reference/kubo/rpc/),
 [Kubo setup](https://docs.ipfs.tech/install/command-line/),
 [ethers v6](https://docs.ethers.org/v6/getting-started/).
+
+## Optional encrypted DM branch
+
+The `astra-encrypted-dm` branch adds a disabled-by-default, mutual-follow messaging
+prototype. Run `npm run dev:dm` for an isolated local rehearsal. Read
+[the security design and test steps](docs/ENCRYPTED_DM_SECURITY.md) before enabling it.
+Browser keys have no recovery or forward secrecy; this is not production-grade messaging.

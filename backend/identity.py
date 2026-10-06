@@ -70,6 +70,9 @@ ABI = json.loads((ROOT/'backend/abi.json').read_text(encoding='utf-8-sig'))
 contract = w3.eth.contract(address=Web3.to_checksum_address(CONTRACT_ADDRESS), abi=ABI) if CONTRACT_ADDRESS else None
 FIELD_NAMES = {'displayName','bio','college','location','email','website'}
 VISIBILITY = {'public','followers','private'}
+DM_ENABLED = os.getenv('ENABLE_ENCRYPTED_DM', 'false').lower() == 'true'
+DM_CONTEXT = '|'.join(['ps67-dm-v1', str(CHAIN_ID), CONTRACT_ADDRESS.lower(),
+                       os.getenv('AUTH_ORIGIN', 'http://127.0.0.1:5000')])
 def address(value):
     if not isinstance(value,str) or not Web3.is_address(value): raise ValueError('Enter a valid wallet address.')
     return Web3.to_checksum_address(value)
@@ -140,7 +143,8 @@ def headers(response):
 @app.get('/config')
 def config():
     return {'mode':MODE,'chainId':CHAIN_ID,'networkName':'Local development' if CHAIN_ID==31337 else 'Public testnet',
-        'contractAddress':CONTRACT_ADDRESS,'abi':ABI,'rpcUrl':request.host_url.rstrip('/')+'/rpc' if MODE=='local' else None,'explorer':EXPLORER_URL}
+        'contractAddress':CONTRACT_ADDRESS,'abi':ABI,'rpcUrl':request.host_url.rstrip('/')+'/rpc' if MODE=='local' else None,'explorer':EXPLORER_URL,
+        'encryptedDm':DM_ENABLED,'dmContext':DM_CONTEXT if DM_ENABLED else None}
 @app.get('/health')
 def health():
     result={'ok':False,'chain':False,'ipfs':False,'chainId':CHAIN_ID,'mode':MODE}
@@ -239,4 +243,9 @@ def errors(error):
     if isinstance(error,requests.RequestException): return jsonify(error='IPFS unavailable. Start the node and try again.'),503
     app.logger.error('Request failed: %s',type(error).__name__)
     return jsonify(error='Cannot complete request. Check chain, storage and gateway configuration.'),503
+if DM_ENABLED:
+    from dm import install_dm
+    install_dm(app, enabled=True, data_dir=DATA_DIR, viewer=viewer, address=address,
+               check_chain=check_chain, get_chain=lambda: (w3, contract), context=DM_CONTEXT)
+
 if __name__=='__main__': app.run(host=os.getenv('BIND_HOST','127.0.0.1'),port=int(os.getenv('PORT','5000')),debug=False)
