@@ -12,6 +12,28 @@ spec=importlib.util.spec_from_file_location('identity',Path(__file__).resolve().
 identity=importlib.util.module_from_spec(spec);spec.loader.exec_module(identity)
 
 class PrivacyTests(unittest.TestCase):
+    def test_college_does_not_reinterpret_legacy_location_ciphertext(self):
+        owner='0x1111111111111111111111111111111111111111'
+        legacy=identity.seal(owner,'location',{'value':'Existing location','visibility':'private'})
+        self.assertEqual(identity.reveal(owner,'location',legacy,True,False)['value'],'Existing location')
+        with self.assertRaises(InvalidTag):identity.reveal(owner,'college',legacy,True,False)
+        college=identity.seal(owner,'college',{'value':'GCET','visibility':'followers'})
+        self.assertEqual(identity.reveal(owner,'college',college,False,True)['value'],'GCET')
+        self.assertNotIn('value',identity.reveal(owner,'college',college,False,False))
+    def test_independent_apps_have_independently_revocable_sessions(self):
+        signer=Account.create();client=identity.app.test_client();tokens=[]
+        class FakeContract:address='0x2222222222222222222222222222222222222222'
+        for origin in ['http://127.0.0.1:8000','http://127.0.0.1:8001']:
+            with patch.object(identity,'check_chain'),patch.object(identity,'contract',FakeContract()):
+                challenge=client.post('/auth/challenge',json={'address':signer.address},headers={'Origin':origin}).json
+            signature=Account.sign_message(encode_defunct(text=challenge['message']),signer.key).signature.hex()
+            tokens.append(client.post('/auth/session',json={'nonce':challenge['nonce'],'signature':signature},headers={'Origin':origin}).json['token'])
+        self.assertNotEqual(tokens[0],tokens[1])
+        client.post('/auth/logout',headers={'Authorization':'Bearer '+tokens[0]})
+        with identity.app.test_request_context(headers={'Authorization':'Bearer '+tokens[0]}):
+            with self.assertRaises(PermissionError):identity.viewer(True)
+        with identity.app.test_request_context(headers={'Authorization':'Bearer '+tokens[1]}):
+            self.assertEqual(identity.viewer(True),signer.address)
     def test_visibility_matrix_and_ciphertext_integrity(self):
         owner='0x1111111111111111111111111111111111111111'
         for visibility in ['public','followers','private']:

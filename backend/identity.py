@@ -62,7 +62,7 @@ def local_network_only():
 w3 = Web3(Web3.HTTPProvider(RPC_URL, request_kwargs={'timeout':15}))
 ABI = json.loads((ROOT/'backend/abi.json').read_text(encoding='utf-8-sig'))
 contract = w3.eth.contract(address=Web3.to_checksum_address(CONTRACT_ADDRESS), abi=ABI) if CONTRACT_ADDRESS else None
-FIELD_NAMES = {'displayName','bio','location','email','website'}
+FIELD_NAMES = {'displayName','bio','college','location','email','website'}
 VISIBILITY = {'public','followers','private'}
 def address(value):
     if not isinstance(value,str) or not Web3.is_address(value): raise ValueError('Enter a valid wallet address.')

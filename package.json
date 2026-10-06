@@ -3,6 +3,37 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "scripts": {"compile": "node scripts/compile.mjs", "dev": "node scripts/dev.mjs", "dev:lan": "node scripts/dev.mjs --lan", "sepolia": "node scripts/dev.mjs --sepolia", "sepolia:lan": "node scripts/dev.mjs --sepolia --lan", "deploy:sepolia": "node scripts/deploy.mjs", "deploy:lan": "node scripts/deploy.mjs --lan", "test:contract": "node --test tests/contract.test.mjs", "test:client": "node --test tests/client.test.mjs"},
-  "dependencies": {"ethers": "^6.17.0", "ganache": "7.9.2", "solc": "0.8.30"}
+  "scripts": {
+    "compile": "node scripts/compile.mjs",
+    "dev": "node scripts/dev.mjs",
+    "dev:lan": "node scripts/dev.mjs --lan",
+    "sepolia": "node scripts/dev.mjs --sepolia",
+    "sepolia:lan": "node scripts/dev.mjs --sepolia --lan",
+    "deploy:sepolia": "node scripts/deploy.mjs",
+    "deploy:lan": "node scripts/deploy.mjs --lan",
+    "test:contract": "node --test tests/contract.test.mjs",
+    "test:client": "node --test tests/client.test.mjs",
+    "build:ui": "node scripts/build-ui.mjs",
+    "typecheck": "tsc --noEmit",
+    "test:all": "node scripts/test.mjs"
+  },
+  "dependencies": {
+    "ethers": "^6.17.0",
+    "ganache": "7.9.2",
+    "lucide-react": "^1.52.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router": "^7.18.4",
+    "solc": "0.8.30"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.0.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.7.3",
+    "vite": "^8.0.5"
+  }
 }

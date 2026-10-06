@@ -123,7 +123,7 @@ export function shortAddress(address) { return address ? address.slice(0, 6) + '
 export function el(tag, text = '', className = '') {
   const node = document.createElement(tag); node.textContent = text; node.className = className; return node;
 }
-export const fieldLabels = { displayName: 'Display name', bio: 'About', location: 'Location', email: 'Email', website: 'Website' };
+export const fieldLabels = { displayName: 'Display name', bio: 'About', college: 'College', location: 'Location', email: 'Email', website: 'Website' };
 export const visibilityLabels = { public: 'Public', followers: 'Followers only', private: 'Private' };
 export function renderProfile(container, profile) {
   container.replaceChildren();

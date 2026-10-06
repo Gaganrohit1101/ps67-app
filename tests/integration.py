@@ -34,7 +34,8 @@ class BaseFlow(unittest.TestCase):
     def test_full_profile_privacy_and_follow_flow(self):
         payload={'fields':{'displayName':{'value':'Alice - PS67 demo','visibility':'public'},
             'bio':{'value':'Building a portable social identity.','visibility':'public'},
-            'location':{'value':'Follower-only city','visibility':'followers'},
+            'college':{'value':'GCET','visibility':'followers'},
+            'location':{'value':'Legacy location retained','visibility':'private'},
             'email':{'value':'owner-only@example.test','visibility':'private'}},
             'posts':[{'value':'Our base prototype is running.','visibility':'public'},
                      {'value':'A private draft.','visibility':'private'}]}
@@ -43,7 +44,7 @@ class BaseFlow(unittest.TestCase):
         self.assertEqual(staged.status_code,201,staged.text)
         cid=staged.json()['cid']
         raw=requests.post('http://127.0.0.1:5001/api/v0/cat',params={'arg':cid}).text
-        self.assertNotIn('owner-only@example.test',raw);self.assertNotIn('Follower-only city',raw);self.assertNotIn('A private draft.',raw)
+        self.assertNotIn('owner-only@example.test',raw);self.assertNotIn('GCET',raw);self.assertNotIn('Legacy location retained',raw);self.assertNotIn('A private draft.',raw)
         self.tx(self.contract.functions.setProfile(cid))
         export=requests.get(BASE+'/identities/'+self.alice+'/export')
         self.assertEqual(export.status_code,200)
@@ -55,16 +56,20 @@ class BaseFlow(unittest.TestCase):
         self.assertTrue(public['fields']['email']['locked']);self.assertNotIn('value',public['fields']['email'])
         owner=requests.get(BASE+'/profiles/'+self.alice,headers=self.auth(0)).json()
         self.assertEqual(owner['fields']['email']['value'],'owner-only@example.test')
+        self.assertEqual(owner['fields']['college']['value'],'GCET')
+        self.assertEqual(owner['fields']['location']['value'],'Legacy location retained')
         self.assertEqual(owner['posts'][1]['value'],'A private draft.')
         if self.contract.functions.isFollowing(self.bob,self.alice).call():self.tx(self.contract.functions.unfollow(self.alice),1)
         self.tx(self.contract.functions.follow(self.alice),1)
         follower=requests.get(BASE+'/profiles/'+self.alice,headers=self.auth(1)).json()
-        self.assertEqual(follower['fields']['location']['value'],'Follower-only city')
+        self.assertEqual(follower['fields']['college']['value'],'GCET')
+        self.assertTrue(follower['fields']['location']['locked'])
         self.assertTrue(follower['fields']['email']['locked']);self.assertIn(self.bob,follower['followers'])
         outsider=requests.get(BASE+'/profiles/'+self.alice,headers=self.auth(2)).json()
         self.assertFalse(outsider['isOwner']);self.assertFalse(outsider['isFollower'])
         self.assertEqual(outsider['fields']['displayName']['value'],'Alice - PS67 demo')
         self.assertTrue(outsider['fields']['location']['locked'])
+        self.assertTrue(outsider['fields']['college']['locked']);self.assertNotIn('value',outsider['fields']['college'])
         self.assertTrue(outsider['fields']['email']['locked'])
         self.assertNotIn('value',outsider['fields']['location']);self.assertNotIn('value',outsider['fields']['email'])
         self.assertTrue(outsider['posts'][1]['locked']);self.assertNotIn('value',outsider['posts'][1])
@@ -85,6 +90,7 @@ class BaseFlow(unittest.TestCase):
         self.tx(self.contract.functions.unfollow(self.alice),1)
         unfollowed=requests.get(BASE+'/profiles/'+self.alice,headers=self.auth(1)).json()
         self.assertTrue(unfollowed['fields']['location']['locked'])
+        self.assertTrue(unfollowed['fields']['college']['locked']);self.assertNotIn('value',unfollowed['fields']['college'])
         # Re-follow leaves a useful sample graph for the local preview.
         self.tx(self.contract.functions.follow(self.alice),1)
     def test_auth_signature_replay_and_wrong_wallet(self):

@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { JsonRpcProvider, Wallet, ContractFactory } from 'ethers';
 import { compile } from './compile.mjs';
 import { networkOptions } from './network.mjs';
+import { buildUI } from './build-ui.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const sepolia = process.argv.includes('--sepolia');
@@ -34,6 +35,7 @@ const chain = sepolia ? null : ganache.server({ chain: { chainId: 31337, hardfor
   wallet: { deterministic: true, totalAccounts: 5 }, logging: { quiet: true } });
 try {
   const artifact = compile();
+  await buildUI();
   // Reuse an existing local IPFS daemon, or start the workspace-scoped binary.
   let ipfsReady = false;
   try { const response = await fetch('http://127.0.0.1:5001/api/v0/id', { method: 'POST', signal: AbortSignal.timeout(1500) }); ipfsReady = response.ok; } catch {}
@@ -85,7 +87,8 @@ try {
       let url;
       try { url = decodeURIComponent(new URL(req.url, 'http://localhost').pathname); }
       catch { res.writeHead(400); res.end(); return; }
-      const file = path.resolve(base, '.' + (url === '/' ? '/index.html' : url));
+      const route = !path.extname(url);
+      const file = path.resolve(base, '.' + (route ? '/index.html' : url));
       if (!file.startsWith(base + path.sep)) { res.writeHead(403); res.end(); return; }
       fs.readFile(file, (err, bytes) => {
         if (err) { res.writeHead(404); res.end('Not found'); return; }
@@ -95,6 +98,6 @@ try {
     });
     server.listen(port, network.bind); servers.push(server);
   }
-  serve('frontend', 8000); serve('viewer', 8001);
+  serve('build/sovereign', 8000); serve('build/atlas', 8001);
   console.log(`\nPS67 ${sepolia ? 'Sepolia' : 'local development'}\nMain app: ${network.origin(8000)}\nSecond app: ${network.origin(8001)}\nAPI: ${network.origin(5000)}\nContract: ${contractAddress}\n${sepolia ? 'Use MetaMask on Ethereum Sepolia in Chrome.' : 'Local chain only. Dev wallets contain fake tokens.'}\nIPFS: ${ipfsReady ? 'ready' : 'start a node on port 5001 before saving profiles'}\nCtrl+C stops the services.`);
 } catch (error) { console.error(error.message); await stop(); }

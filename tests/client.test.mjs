@@ -25,3 +25,14 @@ test('portable references reject another chain or contract', () => {
   assert.throws(() => client.import({ ...reference, chainId: 11155111 }));
   assert.throws(() => client.import({ ...reference, contractAddress: '0x3333333333333333333333333333333333333333' }));
 });
+
+test('real transaction reporting covers pending, confirmed, rejected and reverted', async () => {
+  const client=new IdentityClient(), states=[];
+  await client.transaction(async()=>({hash:'0xtest',wait:async()=>({status:1,blockNumber:42})}),s=>states.push(s));
+  assert.deepEqual(states.map(s=>s.state),['pending','pending','confirmed']);
+  assert.equal(states[2].block,42);
+  for(const make of [async()=>{throw Object.assign(new Error('Rejected'),{code:4001});},async()=>({hash:'0xtest',wait:async()=>({status:0})})]) {
+    const failed=[];await assert.rejects(client.transaction(make,s=>failed.push(s)));
+    assert.equal(failed[0].state,'pending');assert.equal(failed.at(-1).state,'failed');
+  }
+});
