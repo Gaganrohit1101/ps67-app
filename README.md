@@ -143,7 +143,9 @@ The assistant verifies the mined contract bytecode and writes the public receipt
 and the address/transaction below. It never needs a wallet private key.
 
 <!-- SEPOLIA_DEPLOYMENT -->
-Public Sepolia deployment pending. No testnet address is recorded yet.
+Sepolia contract: [0x945472E37a3eE930C5e402729AA770AcF3Ae7fFC](https://sepolia.etherscan.io/address/0x945472E37a3eE930C5e402729AA770AcF3Ae7fFC)
+
+Confirmed deployment: [view transaction](https://sepolia.etherscan.io/tx/0x6b6a694769a862f730922dbfc8a991e632b3b89ff885c608824022914223c971), block 11857331.
 <!-- /SEPOLIA_DEPLOYMENT -->
 
 Stop the local app, then run `npm run sepolia`. This starts both apps and the

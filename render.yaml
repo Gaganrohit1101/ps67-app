@@ -1,0 +1,64 @@
+services:
+  - type: web
+    name: ps67-backend
+    runtime: python
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: gunicorn -w 2 -b 0.0.0.0:$PORT backend.identity:app
+    envVars:
+      - key: MODE
+        value: testnet
+      - key: CHAIN_ID
+        value: 11155111
+      - key: RPC_URL
+        value: https://ethereum-sepolia-rpc.publicnode.com
+      - key: CONTRACT_ADDRESS
+        value: 0x945472E37a3eE930C5e402729AA770AcF3Ae7fFC
+      - key: DEPLOYMENT_BLOCK
+        value: 11857331
+      - key: EXPLORER_URL
+        value: https://sepolia.etherscan.io
+      - key: PUBLIC_HOSTED
+        value: true
+      - key: ALLOWED_HOSTS
+        value: "*"
+      - key: FRONTEND_ORIGINS
+        sync: false
+        value: https://ps67-sovereign.onrender.com,https://ps67-atlas.onrender.com
+
+  - type: web
+    name: ps67-sovereign
+    runtime: static
+    buildCommand: npm install && npm run build:ui
+    staticPublishPath: build/sovereign
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE
+        fromService:
+          type: web
+          name: ps67-backend
+          property: host
+      - key: VITE_ATLAS_URL
+        sync: false
+        value: https://ps67-atlas.onrender.com
+
+  - type: web
+    name: ps67-atlas
+    runtime: static
+    buildCommand: npm install && npm run build:ui
+    staticPublishPath: build/atlas
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE
+        fromService:
+          type: web
+          name: ps67-backend
+          property: host
+      - key: VITE_SOVEREIGN_URL
+        sync: false
+        value: https://ps67-sovereign.onrender.com

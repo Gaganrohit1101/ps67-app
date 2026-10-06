@@ -1,0 +1,10 @@
+{
+  "chainId": 11155111,
+  "contractAddress": "0x945472E37a3eE930C5e402729AA770AcF3Ae7fFC",
+  "transactionHash": "0x6b6a694769a862f730922dbfc8a991e632b3b89ff885c608824022914223c971",
+  "blockNumber": 11857331,
+  "deployer": "0x47C554891f274C87152f666eFA97F998838737E7",
+  "compiler": "0.8.30+commit.73712a01.Emscripten.clang",
+  "explorer": "https://sepolia.etherscan.io/tx/0x6b6a694769a862f730922dbfc8a991e632b3b89ff885c608824022914223c971",
+  "recordedAt": "2026-10-06T17:31:06.874Z"
+}

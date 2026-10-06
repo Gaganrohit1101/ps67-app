@@ -48,16 +48,22 @@ with db() as conn:
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 100000
 CORS(app, origins=os.getenv('FRONTEND_ORIGINS', 'http://127.0.0.1:8000,http://127.0.0.1:8001').split(','), allow_headers=['Content-Type','Authorization'])
+PUBLIC_HOSTED = os.getenv('PUBLIC_HOSTED', 'false').lower() in {'1', 'true', 'yes'}
 LAN_SUBNET = ipaddress.ip_network(os.environ['LAN_SUBNET'],strict=False) if os.getenv('LAN_SUBNET') else None
-ALLOWED_HOSTS = set(os.getenv('ALLOWED_HOSTS','127.0.0.1,localhost').split(','))
+ALLOWED_HOSTS = set(os.getenv('ALLOWED_HOSTS','127.0.0.1,localhost').split(',')) if os.getenv('ALLOWED_HOSTS') and os.getenv('ALLOWED_HOSTS') != '*' else None
 def local_client():
+    if PUBLIC_HOSTED: return True
     try:
         ip=ipaddress.ip_address(request.remote_addr or '')
         return ip.is_loopback or bool(LAN_SUBNET and ip in LAN_SUBNET)
     except ValueError: return False
 @app.before_request
 def local_network_only():
-    if not local_client() or request.host.split(':')[0] not in ALLOWED_HOSTS:
+    if PUBLIC_HOSTED:
+        if ALLOWED_HOSTS is not None and request.host.split(':')[0] not in ALLOWED_HOSTS:
+            return jsonify(error='Access from unapproved host is not allowed.'),403
+        return
+    if not local_client() or (ALLOWED_HOSTS is not None and request.host.split(':')[0] not in ALLOWED_HOSTS):
         return jsonify(error='Access is limited to the configured local network.'),403
 w3 = Web3(Web3.HTTPProvider(RPC_URL, request_kwargs={'timeout':15}))
 ABI = json.loads((ROOT/'backend/abi.json').read_text(encoding='utf-8-sig'))

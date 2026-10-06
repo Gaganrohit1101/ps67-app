@@ -7,6 +7,11 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 export async function buildUI() {
   for(const app of ['sovereign','atlas']) {
     await build({configFile:false,root:path.join(root,'ui',app),plugins:[react(),tailwind()],
+      define:{
+        'import.meta.env.VITE_API_BASE': JSON.stringify(process.env.VITE_API_BASE || ''),
+        'import.meta.env.VITE_ATLAS_URL': JSON.stringify(process.env.VITE_ATLAS_URL || ''),
+        'import.meta.env.VITE_SOVEREIGN_URL': JSON.stringify(process.env.VITE_SOVEREIGN_URL || ''),
+      },
       build:{outDir:path.join(root,'build',app),emptyOutDir:true},logLevel:'warn'});
     console.log(`${app}: React frontend built.`);
   }
