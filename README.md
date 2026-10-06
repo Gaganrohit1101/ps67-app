@@ -1,147 +1,178 @@
-# INNOBLOCK 2.0 · Starter Kit
+# Sovereign / Atlas - INNOBLOCK 2.0 PS67
 
-**5–7 October 2026 · GCET · Teams of 2–4 · Testnets only · Organised by the GCET Blockchain Club**
+A base prototype of a portable social identity: create a DID-linked profile, publish
+profile/posts to IPFS, store the profile pointer and follow graph in a Solidity
+contract, and load the same identity in two independently served frontends.
 
-Clone this repo and you have a working dApp from minute one: a smart contract, a Python backend and a web page that write to a blockchain testnet and prove records were never changed. Spend the hackathon on your idea, not on boilerplate.
+**Current stage: local development. No public-testnet deployment or public GitHub
+submission has been made.** Local wallets contain fake tokens. Use fresh burner
+wallets and public testnets for the hackathon; never fund development wallets with
+real assets.
 
-This page is the summary. The full **participant handbook** is [INNOBLOCK-2.0-Handbook.pdf](INNOBLOCK-2.0-Handbook.pdf) (10 pages), and every step is covered in detail, with screenshots, in five guides in [`docs/`](docs/), each also available as a PDF. Announcements: [@gcet_blockchain](https://www.instagram.com/gcet_blockchain/) on Instagram.
+## Base scope
 
-## The three days
+| PS67 requirement | Implementation |
+| --- | --- |
+| DID + decentralized profile/posts | `did:pkh:eip155:<chainId>:<wallet>`; versioned JSON pinned to a Kubo IPFS node |
+| Contract profile pointer + follow graph | `SocialIdentity.sol`: owner-only pointer updates, follow/unfollow, graph reads and events |
+| Public / followers-only / private | Per-field/post settings; AES-256-GCM encryption; wallet-authenticated reads with live chain access checks |
+| Export + second frontend | Sovereign exports a reference; Atlas validates network/contract and resolves the current profile and followers |
 
-| Day | Date | What happens | Walk out with |
-| --- | --- | --- | --- |
-| **Day 1 · Guest lecture** | Mon 5 Oct | Guest lecture, problem statements handed out, team ideation | A chosen problem statement, a one-line idea, and everything in [Before you arrive](#before-you-arrive) done |
-| **Day 2 · Build** | Tue 6 Oct | The whole day is yours to build | Contract deployed, app live, full flow tested |
-| **Day 3 · Judgment day** | Wed 7 Oct | Pitches and live demos before the judges | A tight pitch, a working demo, a submitted repo |
+No AI, DMs or privacy-preview feature is included. Finish the base first.
 
-## Before you arrive
+## Start locally (Windows)
 
-Do this before Day 2, ideally tonight. Installs and faucet waits are the most common way teams lose their build morning.
+Prerequisites: Node.js, Python 3.10+ and Kubo IPFS. The app adapts the starter's
+Flask + web3.py and HTML/JavaScript + ethers.js architecture.
 
-- [ ] **Laptop**: Chrome, Brave or Edge with [MetaMask](https://metamask.io); in MetaMask, Settings → Advanced → **Show test networks** on
-- [ ] **A new wallet just for the hackathon** (a "burner"). Never use one that has held real money
-- [ ] **Python 3.10+** and **Git** installed (`python --version`, `git --version`)
-- [ ] **Test tokens** in your wallet. For Sepolia, these work with a new wallet: [QuickNode](https://faucet.quicknode.com/ethereum/sepolia), [Google Cloud](https://cloud.google.com/application/web3/faucet/ethereum/sepolia), [PoW faucet](https://sepolia-faucet.pk910.de). One teammate can share with the rest
-- [ ] **The starter installed**: clone this repo and run step 2 of the [Quick start](#quick-start). If `pip install` works tonight, it works tomorrow
-- [ ] **Free accounts**, one per team: [GitHub](https://github.com), [Render](https://render.com), [Vercel](https://vercel.com) or [Netlify](https://netlify.com), [Neon](https://neon.tech) or [Supabase](https://supabase.com), [UptimeRobot](https://uptimerobot.com), and an AI provider if your idea uses AI
-
-Step by step, with a 10-minute self-test: [docs/01-setup.md](docs/01-setup.md).
-
-## Minimum to be judged
-
-- [ ] A smart contract deployed on a **public testnet**, its address in your README and on your first slide
-- [ ] At least one transaction from your app visible on the network's **block explorer**
-- [ ] A web page that connects a wallet and shows each transaction's status (pending / confirmed / failed)
-- [ ] A **public GitHub repo** with a README: setup steps and how to test
-
-Extras (AI, a database, a polished UI) earn marks, but only once the minimum works.
-
-## Ground rules
-
-- **Testnets only.** Any public testnet is allowed. The starter supports five EVM testnets out of the box (below), and any other EVM testnet takes one config entry. Never mainnet, never real money.
-- **Burner wallets only.** Make a fresh wallet for the hackathon. Never use one that has held real funds.
-- **AI is allowed**, both as a coding assistant and inside your app, with any provider you like.
-- **The starter is optional.** Swap any part (Hardhat or Foundry, React, a Node backend) if your team prefers. You're judged on what you build on top.
-- **Every member should be able to explain their part.** Judges will ask.
-
-## Quick start
-
-You need Python 3.10+, Git, and a browser with MetaMask. Full walkthrough: [docs/02-build.md](docs/02-build.md).
-
-```bash
-git clone https://github.com/murthyroshan/innoblock-2.0-starter.git
-cd innoblock-2.0-starter
+```powershell
+npm install
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r backend/requirements.txt
 ```
 
-**1. Deploy the contract.** [Open it in Remix](https://remix.ethereum.org/#url=https://raw.githubusercontent.com/murthyroshan/innoblock-2.0-starter/main/contracts/RecordRegistry.sol) (one click), compile, then in **Deploy & run** set Environment to **Browser Extension → MetaMask** and deploy on your testnet. Copy the contract address.
+Initialize an IPFS repo inside this checkout. Run this in a separate terminal;
+replace `ipfs` with its full binary path if needed. Skip `init` if already initialized.
 
-**2. Run the backend.**
+If the workspace-scoped binary `.data/tools/ipfs.exe` exists, the launcher initializes
+and starts it automatically; skip the separate IPFS commands. You can also supply
+an installed binary through `IPFS_BIN`. Generated tools/state are excluded from Git.
 
-```bash
-cd backend
-python -m venv venv
-venv\Scripts\activate            # Mac/Linux: source venv/bin/activate
-pip install -r requirements.txt
-copy .env.example .env           # Mac/Linux: cp .env.example .env
-# edit .env: PRIVATE_KEY, RPC_URL, CONTRACT_ADDRESS, EXPLORER_URL
-python app.py                    # http://localhost:5000/health should say "ok": true
+```powershell
+$env:IPFS_PATH = "$PWD/.data/ipfs"
+ipfs init --profile=lowpower
+ipfs daemon
 ```
 
-**3. Run the frontend.** Set `ACTIVE_NETWORK` and `CONTRACT_ADDRESS` in [`frontend/config.js`](frontend/config.js), then in a second terminal:
+Start the app services in another terminal:
 
-```bash
-cd frontend
-python -m http.server 8000       # open http://localhost:8000
+```powershell
+npm run dev
 ```
 
-Connect your wallet, store a record, ask the AI, verify. Then make it yours.
+- Main app: http://127.0.0.1:8000
+- Independent viewer: http://127.0.0.1:8001
+- Health: http://127.0.0.1:5000/health
+- Local RPC: http://127.0.0.1:8545 (chain ID 31337)
 
-## What's in the box
+The launcher compiles/deploys to Ganache, writes the ABI, serves both frontends
+separately and starts Flask. On restart the local chain resets; IPFS pins and the
+privacy key persist. Export fresh references after a restart.
+
+**Use demo wallet** lets you try Alice, Bob and Charlie without MetaMask. These
+are known development keys, enabled only on localhost/chain 31337 and disabled in
+testnet mode. MetaMask is the testnet path; sign-in and transaction approval are separate.
+
+## Try the complete flow
+
+1. Choose Alice and **Use demo wallet**. Set a public name, followers-only location,
+   private email and public post. Save. Check pending/confirmed status and hash/block.
+2. Switch to Charlie. Open **Explore people**, then Alice. Only public values load.
+3. Switch to Bob, open Alice and **Follow**. Her location becomes available after
+   confirmation. Her private email stays restricted.
+4. **Export identity**. In Atlas, **Import identity JSON**. The same DID, profile and
+   follower wallets load. Sign in as Bob there to read permitted fields.
+5. **Unfollow** in Sovereign. Reload Atlas: the location becomes restricted again.
+   Previously seen information cannot be erased from a viewer's memory.
+
+## Validation
+
+```powershell
+npm run test:contract
+npm run test:client
+.\.venv\Scripts\python.exe tests/privacy.py
+# With npm run dev and IPFS running:
+.\.venv\Scripts\python.exe tests/integration.py
+```
+
+Contract tests cover pointer ownership, invalid/duplicate/self follows, graph
+removal and re-following. Integration checks use real IPFS, inspect raw content
+for plaintext leaks, validate signatures/replay protection, and exercise owner,
+follower and non-follower reads before/after unfollowing. They leave a sample
+Alice profile and Bob follower relationship on the local chain for exploration.
+
+## Architecture and interfaces
 
 ```text
-innoblock-2.0-starter/
-├── contracts/RecordRegistry.sol   stores a hash per record, emits an event, verifies
-├── backend/                       Flask + web3.py: AI call, signs transactions, saves records
-│   ├── app.py
-│   ├── abi.json                   contract interface (re-copy from Remix if you change the contract)
-│   ├── requirements.txt
-│   └── .env.example               every setting, with examples for each network and AI provider
-├── frontend/                      plain HTML + JS + ethers.js v6, no build step
-│   ├── config.js                  the only file you must edit: network, contract, backend URL
-│   ├── app.js
-│   ├── index.html
-│   └── style.css
-└── docs/                          five detailed guides (PDF copies in docs/pdf/)
+Sovereign (8000)       Atlas (8001)
+       |                  |
+       +-- wallet sign-in +---> Flask privacy gateway (5000)
+       |                              | live follower/owner checks
+       +-- wallet-signed tx ----------+---> SocialIdentity / EVM chain
+                                      |
+                                encrypted JSON <-> Kubo / IPFS
 ```
 
-The demo app shows the core pattern: **keep the full record off-chain, put its fingerprint (hash) on-chain**, and let anyone prove the record wasn't changed. It works for AI decisions, certificates, land records, medical reports, trade signals and more. See [docs/02-build.md](docs/02-build.md#how-the-starter-works).
+- On chain: wallet profile pointers and public follow relationships. DID derives
+  from chain ID + wallet, not an editable profile string.
+- IPFS: public content and encrypted restricted fields/posts. No personal values
+  go on chain.
+- Gateway: one-time signed challenges, expiring sessions, encryption and current
+  contract pointer/privilege checks on every read. Claimed addresses alone grant no access.
+- Export: `{schemaVersion: 1, did, chainId, contractAddress}`. No private values;
+  resolves the latest pointer rather than copying a local cached profile.
+- Both frontends reuse a small client. `npm run compile` syncs the client copy and
+  vendored ethers; frontend entrypoints, interfaces and state are separate.
 
-## Supported networks
+### Prototype privacy boundary
 
-| Network | Chain ID | Currency | Explorer |
-| --- | --- | --- | --- |
-| **Ethereum Sepolia** (default) | 11155111 | ETH | [sepolia.etherscan.io](https://sepolia.etherscan.io) |
-| Base Sepolia | 84532 | ETH | [sepolia.basescan.org](https://sepolia.basescan.org) |
-| Polygon Amoy | 80002 | POL | [amoy.polygonscan.com](https://amoy.polygonscan.com) |
-| Arbitrum Sepolia | 421614 | ETH | [sepolia.arbiscan.io](https://sepolia.arbiscan.io) |
-| OP Sepolia | 11155420 | ETH | [sepolia-optimism.etherscan.io](https://sepolia-optimism.etherscan.io) |
+This is **not trustless key management**. The gateway holds `.data/local/privacy.key`
+for local demos, or `.data/sepolia/privacy.key` for Sepolia,
+and can decrypt restricted content. Owners control writes with their wallets,
+but trust this service for confidential reads. Both apps need the same gateway
+for restricted fields. Public content remains independently readable through IPFS.
 
-Faucets for every network, RPC URLs and how to switch: [docs/01-setup.md](docs/01-setup.md#networks-and-faucets).
+Keep the key/auth state on private persistent storage and back them up. Losing the
+key loses restricted content. Use fictional demo data. Metadata and follower edges
+are public. Replacing a pointer does not erase old IPFS content. Maintain pins and
+an online node; public availability needs additional replication/pinning.
+Decentralized access/key management is future work.
 
-## Judging
+## Move to a public testnet after local validation
 
-| Criterion | Marks | What judges look for |
-| --- | ---: | --- |
-| Working prototype & codebase | 30 | Live demo works end to end on a testnet; transactions visible on the explorer; the repo's code is what runs |
-| Blockchain | 25 | The chain is needed, not decorative; sensible on-chain / off-chain split; contract verified |
-| Technical quality (GitHub, README, smart contract) | 15 | Clean public repo with no secrets; complete README; readable, commented contract |
-| Pitch and Q&A | 15 | How well you explain the given problem statement and your solution, on time; every member answers questions about their part |
-| Innovation | 10 | A fresh angle; AI or other integrations that add real value |
-| UI / UX | 5 | Easy to follow; clear transaction feedback |
-| **Total** | **100** | |
+For other laptops on the same Wi-Fi, use [LAN_SETUP.md](LAN_SETUP.md):
+`npm run dev:lan` and `npm run deploy:lan`. After deployment use
+`npm run sepolia:lan`. Web services bind to all IPv4 interfaces, with application
+access limited to the detected local subnet. The guide includes a scoped Windows
+Firewall script and the exact current URLs.
 
-## Demo day must-haves
+Follow [SEPOLIA_SETUP.md](SEPOLIA_SETUP.md). Run `npm run deploy:sepolia`, open
+http://127.0.0.1:8002 in Chrome, connect MetaMask on Sepolia and approve deployment.
+The assistant verifies the mined contract bytecode and writes the public receipt to
+`deployments/sepolia.json`, the contract address/block/RPC to ignored `backend/.env`,
+and the address/transaction below. It never needs a wallet private key.
 
-- [ ] Frontend deployed and opens on a phone, on mobile data
-- [ ] Backend awake: open `/health` just before you present
-- [ ] Database connected and environment variables set on the host, not only on your laptop
-- [ ] Full flow tested 30 minutes before your slot
-- [ ] Demo wallet and backend wallet both hold test tokens
-- [ ] Local backup running, and a 1–2 minute backup video saved offline
-- [ ] Phone hotspot ready in case the Wi-Fi drops
+<!-- SEPOLIA_DEPLOYMENT -->
+Public Sepolia deployment pending. No testnet address is recorded yet.
+<!-- /SEPOLIA_DEPLOYMENT -->
 
-Full checklist, pitch structure and likely judge questions: [docs/05-pitch-and-judging.md](docs/05-pitch-and-judging.md).
+Stop the local app, then run `npm run sepolia`. This starts both apps and the
+gateway on Sepolia, with demo wallets disabled and separate key/session storage.
+Use compiler 0.8.30, Shanghai, optimizer 200 for explorer verification;
+`build/solidity-input.json` is the exact standard JSON compiler input.
+Record an offline backup demo before judging. Hosted deployment additionally needs
+a WSGI server/reverse proxy, HTTPS, persistent storage and reliable IPFS pins.
+Keep Kubo's administrative API private. Localhost apps already support the laptop demo.
 
-## Submit
+## Team responsibility
 
-Public GitHub repo · contract address with its explorer link · live frontend URL · demo video link · slides as PDF · team name, members and domain. **Where and when to submit is announced on Day 1.**
+- Person 1: contract, DID/schema, storage and gateway. Q&A: blockchain, contract,
+  privacy architecture.
+- Person 2: main app, wallet flow, visibility and transaction status. Q&A: frontend,
+  user flow and app access control.
+- Person 3: Atlas, deployment, main GitHub repo/README, integration, pitch and
+  offline video. Q&A: deployment, portability, demo and GitHub.
 
-## Detailed guides
+All members push separate branches/commits; Person 3 coordinates merges. By
+mid-build day, connect all three parts once. Fill in names and live URLs before submission.
 
-| Guide | PDF | Read it when |
-| --- | --- | --- |
-| [01 · Setup and networks](docs/01-setup.md) | [PDF](docs/pdf/01-setup.pdf) | Tonight: laptop, wallet, accounts, test tokens; choosing and switching testnets |
-| [02 · Build](docs/02-build.md) | [PDF](docs/pdf/02-build.pdf) | Day 2: how the starter works, step by step with screenshots, AI prompt templates |
-| [03 · Deploy and security](docs/03-deploy-and-security.md) | [PDF](docs/pdf/03-deploy-and-security.pdf) | Putting it online for free (Neon / Supabase, Render, Vercel, UptimeRobot) and keeping keys safe |
-| [04 · Troubleshooting](docs/04-troubleshooting.md) | [PDF](docs/pdf/04-troubleshooting.pdf) | Something broke |
-| [05 · Pitch and judging](docs/05-pitch-and-judging.md) | [PDF](docs/pdf/05-pitch-and-judging.pdf) | Day 3 prep: criteria, pitch, demo-day and submission checklists |
+## Sources and attribution
+
+Built on [INNOBLOCK starter](https://github.com/murthyroshan/innoblock-2.0-starter).
+Original README/guides remain in `docs/`. Original `RecordRegistry.sol` and
+`backend/app.py` are reference code; PS67 runs `SocialIdentity.sol` and `backend/identity.py`.
+Requirements come from uploaded PS67, handbook and group instructions.
+
+Technical references: [Kubo RPC](https://docs.ipfs.tech/reference/kubo/rpc/),
+[Kubo setup](https://docs.ipfs.tech/install/command-line/),
+[ethers v6](https://docs.ethers.org/v6/getting-started/).

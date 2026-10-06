@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PS67 | Sepolia deployment</title>
+<style>body{margin:0;background:#f1f5f8;color:#162a38;font:16px/1.6 system-ui}main{max-width:720px;margin:60px auto;padding:36px;background:white;border-radius:20px}h1{line-height:1.15}button{background:#135e68;color:white;border:0;border-radius:8px;padding:14px 20px;margin:8px 8px 8px 0;font:inherit;cursor:pointer}button:disabled{opacity:.45;cursor:default}input{box-sizing:border-box;width:100%;padding:12px;font:inherit}#status{padding:18px;background:#e9f4f3;border-radius:8px;overflow-wrap:anywhere}a{color:#135e68}small{color:#526878}.eyebrow{letter-spacing:.12em;color:#135e68;font-weight:700}</style></head>
+<body><main><p class="eyebrow">INNOBLOCK 2.0 · PS67</p><h1>Deploy your identity registry.</h1>
+<p>Ethereum Sepolia only. MetaMask signs the deployment in Chrome. Your wallet secrets stay in MetaMask.</p>
+<p id="wallet">Wallet not connected</p><button id="connect">Connect MetaMask on Sepolia</button><button id="deploy" disabled>Deploy SocialIdentity</button>
+<p id="status" role="status">Checking compiled contract and Sepolia connection…</p><div id="result"></div>
+<details><summary>Already deployed, or recording failed?</summary><label for="hash">Deployment transaction hash</label><input id="hash" placeholder="0x…"><button id="record">Verify and record transaction</button><p>This verifies the mined bytecode before saving the address. It sends no new transaction.</p></details>
+<p><small>After confirmation: stop the local app and run <code id="start-command">npm run sepolia</code>. Then open <a id="main-url" href="#">Sovereign</a> and <a id="viewer-url" href="#">Atlas</a> in Chrome.</small></p>
+</main><script type="module" src="/deploy.js"></script></body></html>

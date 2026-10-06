@@ -1,7 +1,9 @@
 # Secrets: never commit these
 .env
 *.env
+.env.*
 !.env.example
+!.env.ps67.example
 
 # Python
 venv/
@@ -20,3 +22,10 @@ node_modules/
 .idea/
 .DS_Store
 Thumbs.db
+
+# PS67 local state and generated dependencies
+.data/
+build/
+frontend/vendor/
+viewer/vendor/
+*.log

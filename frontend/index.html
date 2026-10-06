@@ -1,77 +1,31 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>INNOBLOCK 2.0 Starter dApp</title>
-  <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="style.css">
-</head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sovereign | Your social identity</title><link rel="stylesheet" href="ui.css"></head>
 <body>
-  <header>
-    <div>
-      <h1>Proof Registry</h1>
-      <p class="sub">INNOBLOCK 2.0 starter: store a fingerprint of any text on-chain, then prove it was never changed.</p>
-    </div>
-    <span id="network-badge" class="badge"></span>
-  </header>
-
-  <div id="setup-warning" class="banner hidden"></div>
-
+  <aside class="sidebar">
+    <a class="brand" href="/" aria-label="Sovereign home"><span class="brand-mark">S</span><span>Sovereign<small>YOUR IDENTITY, YOUR RULES</small></span></a>
+    <div class="nav-label">WORKSPACE</div>
+    <button class="nav active" id="nav-profile">◉ <span>My profile</span></button>
+    <button class="nav" id="nav-explore">⌕ <span>Explore people</span></button>
+    <a class="nav" href="#" target="_blank" rel="noopener">↗ <span>Open second app</span></a>
+    <div class="sidebar-bottom"><span class="tiny-dot"></span> INNOBLOCK 2.0 <small>PS67 · Digital Identity<br>Base prototype</small></div>
+  </aside>
   <main>
-    <!-- 1. Wallet -->
-    <section class="card">
-      <h2><span class="step">1</span> Connect your wallet</h2>
-      <p class="hint">MetaMask (or any browser wallet) on the network shown above.</p>
-      <button id="connect-btn">Connect wallet</button>
-      <dl class="facts">
-        <dt>Address</dt><dd id="wallet-address">Not connected</dd>
-        <dt>Balance</dt><dd id="wallet-balance">-</dd>
-      </dl>
-      <div id="connect-status" class="status"></div>
-    </section>
-
-    <!-- 2. User signs -->
-    <section class="card">
-      <h2><span class="step">2</span> Store from your wallet</h2>
-      <p class="hint">You sign the transaction in MetaMask and pay the (test) gas.</p>
-      <textarea id="wallet-text" rows="3" placeholder="Type anything: a certificate, a vote, a land record..."></textarea>
-      <button id="wallet-store-btn">Store fingerprint on-chain</button>
-      <div id="wallet-status" class="status"></div>
-    </section>
-
-    <!-- 3. Backend signs -->
-    <section class="card">
-      <h2><span class="step">3</span> AI decision, recorded on-chain</h2>
-      <p class="hint">The backend asks an AI model, then signs with its own wallet. No API key? It returns a demo answer.</p>
-      <textarea id="ai-prompt" rows="2" placeholder="e.g. Should loan application #12 be approved? Income 40k, debt 5k."></textarea>
-      <button id="ai-ask-btn">Ask the AI</button>
-      <textarea id="ai-decision" rows="3" placeholder="The AI's decision appears here. You can edit it before storing."></textarea>
-      <button id="ai-store-btn">Store decision on-chain</button>
-      <div id="ai-status" class="status"></div>
-    </section>
-
-    <!-- 4. Verify -->
-    <section class="card wide">
-      <h2><span class="step">4</span> Records and verification</h2>
-      <p class="hint">Records saved by the backend. Edit any text and press Verify: one changed character and it fails.</p>
-      <button id="refresh-btn" class="secondary">Refresh records</button>
-      <div id="records"></div>
-      <h3>Check any record by id</h3>
-      <p class="hint">Works for records stored from a wallet in step 2 too: enter the id and the exact text.</p>
-      <div class="record">
-        <input id="check-id" class="rid-input" type="number" min="1" placeholder="id">
-        <input id="check-text" placeholder="Exact text that was stored">
-        <button id="check-btn" class="secondary">Verify</button>
-        <span id="check-result" class="result"></span>
-      </div>
-    </section>
+    <header class="topbar"><span id="network">Connecting to local services…</span><div class="wallet-controls"><select id="dev-wallet" aria-label="Local demo wallet" hidden></select><button id="connect-demo" class="secondary" hidden>Use demo wallet</button><button id="connect" class="primary">Connect MetaMask</button><button id="disconnect" class="secondary" hidden>Disconnect</button></div></header>
+    <div class="local-note" id="local-note" hidden>LOCAL DEVELOPMENT · These demo wallets use fake tokens. Public testnet deployment comes later.</div>
+    <div class="page-content">
+      <div class="page-heading"><div><p class="eyebrow">A PROFILE THAT GOES WITH YOU</p><h1>Your profile. Your rules.</h1><p class="intro">Choose what to share, keep your audience, and bring your identity to another app.</p></div><span class="pill" id="wallet-label">Not connected</span></div>
+      <div id="service-status" class="service-status" role="status">Checking blockchain and storage…</div>
+      <div id="message" class="message" role="status" hidden></div>
+      <section id="profile-workspace" class="workspace">
+        <section class="card editor"><div class="card-heading"><h2>Build your profile</h2><span class="badge public">You control visibility</span></div><p class="muted">Each field has its own audience. Only your wallet can update your profile.</p>
+          <form id="profile-form"><div id="fields"></div><div class="post-editor"><h3>Add a post</h3><label for="post-text">What would you like to share?</label><textarea id="post-text" rows="3" maxlength="2000" placeholder="A thought, an update, something you made…"></textarea><label class="small-label" for="post-visibility">Post visibility</label><select id="post-visibility"><option value="public">Public</option><option value="followers">Followers only</option><option value="private">Private</option></select></div><p class="hint">Saving uploads to IPFS, then asks your wallet to update the on-chain pointer.</p><button id="save" class="primary wide" type="submit" disabled>Save profile on chain</button></form>
+        </section>
+        <div class="right-column"><section class="card profile-card"><div class="card-heading"><h2>Your saved profile</h2><button id="export" class="text-button" disabled>Export identity ↗</button></div><div id="own-profile" class="profile-content"><div class="empty"><div class="empty-icon">◎</div><h3>Your identity starts here</h3><p>Connect a wallet, fill in your profile, then save. Your identity will appear here.</p></div></div></section><section class="card transaction-card"><h3>Transaction status</h3><div id="transaction" aria-live="polite"><p class="muted">Your next transaction will appear here.</p></div></section></div>
+      </section>
+      <section id="explore-workspace" hidden><div class="card search-card"><h2>Find a profile</h2><form id="lookup-form" class="search-row"><label class="sr-only" for="lookup">Wallet address or DID</label><input id="lookup" placeholder="Paste a wallet address or did:pkh identity" required><button class="primary" type="submit">Open profile</button></form><div id="people" class="people"></div></div><section id="explore-result" class="card" hidden><div class="card-heading"><span class="eyebrow">SOCIAL PROFILE</span><div><button id="follow" class="primary" hidden>Follow</button><button id="export-explore" class="secondary">Export identity</button></div></div><div id="other-profile" class="profile-content"></div><div id="follow-transaction" class="transaction-inline" role="status"></div></section></section>
+      <footer>Content on IPFS · Identity and follow relationships on chain · Per-field privacy</footer>
+    </div>
   </main>
-
-  <footer>Built from the INNOBLOCK 2.0 starter · GCET Blockchain Club</footer>
-
-  <script src="https://cdn.jsdelivr.net/npm/ethers@6.17.0/dist/ethers.umd.min.js"></script>
-  <script src="config.js"></script>
-  <script src="app.js"></script>
-</body>
-</html>
+  <script type="module" src="main.js"></script>
+</body></html>
