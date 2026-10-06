@@ -23,6 +23,9 @@ if MODE == 'local' and CHAIN_ID != 31337:
 RPC_URL = os.getenv('RPC_URL', 'http://127.0.0.1:8545')
 CONTRACT_ADDRESS = os.getenv('CONTRACT_ADDRESS', '')
 IPFS_API = os.getenv('IPFS_API', 'http://127.0.0.1:5001/api/v0').rstrip('/')
+IPFS_AUTH = os.getenv('IPFS_AUTH', '').strip()
+PINATA_JWT = os.getenv('PINATA_JWT', '').strip()
+PINATA_GATEWAY = os.getenv('PINATA_GATEWAY', 'gateway.pinata.cloud').strip().replace('https://', '').replace('http://', '').rstrip('/')
 EXPLORER_URL = os.getenv('EXPLORER_URL', '').rstrip('/')
 DATA_DIR = Path(os.getenv('DATA_DIR', ROOT / '.data'))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -88,16 +91,44 @@ def viewer(required=False):
         row=conn.execute('SELECT address FROM sessions WHERE token_hash=? AND expires>?',(hashlib.sha256(auth[7:].encode()).hexdigest(),time.time())).fetchone()
     if not row: raise PermissionError('Session expired. Sign in again.')
     return row['address']
+def ipfs_headers():
+    headers = {}
+    if IPFS_AUTH: headers['Authorization'] = IPFS_AUTH
+    return headers
 def ipfs_add(document):
+    if PINATA_JWT:
+        r = requests.post('https://api.pinata.cloud/pinning/pinJSONToIPFS',
+            headers={'Authorization': f'Bearer {PINATA_JWT}', 'Content-Type': 'application/json'},
+            json={'pinataContent': document, 'pinataMetadata': {'name': f'ps67-profile-{CHAIN_ID}'}},
+            timeout=30)
+        r.raise_for_status()
+        return r.json()['IpfsHash']
     payload=json.dumps(document,separators=(',',':'),ensure_ascii=False).encode()
-    r=requests.post(IPFS_API+'/add',params={'pin':'true','cid-version':'1'},files={'file':('profile.json',payload,'application/json')},timeout=30)
+    r=requests.post(IPFS_API+'/add',params={'pin':'true','cid-version':'1'},files={'file':('profile.json',payload,'application/json')},headers=ipfs_headers(),timeout=30)
     r.raise_for_status()
     return r.json()['Hash']
 def ipfs_read(cid):
     # Kubo's CIDv1 adds use raw-leaf roots (bafk...) for small JSON documents,
     # and DAG-PB roots (bafy...) for larger ones.
     if not re.fullmatch(r'(baf[a-z2-7]{20,100}|Qm[a-zA-Z0-9]{44})',cid): raise ValueError('Unsupported IPFS CID in profile pointer.')
-    with requests.post(IPFS_API+'/cat',params={'arg':cid},timeout=25,stream=True) as r:
+    if PINATA_JWT:
+        urls = [f'https://{PINATA_GATEWAY}/ipfs/{cid}', f'https://ipfs.io/ipfs/{cid}', f'https://dweb.link/ipfs/{cid}']
+        last_error = None
+        for u in urls:
+            try:
+                r = requests.get(u, timeout=20, stream=True)
+                if r.ok:
+                    chunks=[]; size=0
+                    for chunk in r.iter_content(4096):
+                        size+=len(chunk)
+                        if size>100000: raise ValueError('Profile is too large.')
+                        chunks.append(chunk)
+                    return json.loads(b''.join(chunks))
+            except Exception as e:
+                last_error = e
+                continue
+        raise last_error or RuntimeError('Could not retrieve profile from IPFS gateway.')
+    with requests.post(IPFS_API+'/cat',params={'arg':cid},headers=ipfs_headers(),timeout=25,stream=True) as r:
         r.raise_for_status()
         chunks=[]; size=0
         for chunk in r.iter_content(4096):
@@ -147,8 +178,13 @@ def health():
     try: check_chain(); result['chain']=True
     except Exception: result['chainError']='Chain unavailable or contract configuration incomplete.'
     try:
-        r=requests.post(IPFS_API+'/id',timeout=3);r.raise_for_status();result['ipfs']=True
-    except Exception: result['ipfsError']='Start IPFS or check IPFS_API.'
+        if PINATA_JWT:
+            r=requests.get('https://api.pinata.cloud/data/testAuthentication',headers={'Authorization':f'Bearer {PINATA_JWT}'},timeout=4)
+            r.raise_for_status()
+            result['ipfs']=True; result['storageProvider']='pinata'
+        else:
+            r=requests.post(IPFS_API+'/id',headers=ipfs_headers(),timeout=3);r.raise_for_status();result['ipfs']=True; result['storageProvider']='kubo'
+    except Exception: result['ipfsError']='Start IPFS or check IPFS_API / PINATA_JWT.'
     result['ok']=result['chain'] and result['ipfs']
     return result,200 if result['ok'] else 503
 @app.get('/dev-wallets')

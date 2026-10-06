@@ -24,6 +24,12 @@ services:
         value: ps67-backend.onrender.com,localhost,127.0.0.1
       - key: FRONTEND_ORIGINS
         value: https://ps67-sovereign.onrender.com,https://ps67-atlas.onrender.com
+      - key: PINATA_JWT
+        sync: false
+      - key: PINATA_GATEWAY
+        value: gateway.pinata.cloud
+      - key: IPFS_API
+        sync: false
 
   - type: web
     name: ps67-sovereign
