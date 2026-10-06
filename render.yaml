@@ -2,6 +2,7 @@ services:
   - type: web
     name: ps67-backend
     runtime: python
+    plan: free
     buildCommand: pip install -r backend/requirements.txt
     startCommand: gunicorn -w 2 -b 0.0.0.0:$PORT backend.identity:app
     envVars:
