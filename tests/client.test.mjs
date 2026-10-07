@@ -49,3 +49,33 @@ test('mobile connection requests Sepolia switch and verifies the wallet network'
   await assert.rejects(client.ensureWalletNetwork({request:async({method})=>{if(method==='eth_chainId')return '0x1';throw Object.assign(new Error('Rejected'),{code:4001});}}),/Rejected/);
   await assert.rejects(client.ensureWalletNetwork({request:async({method})=>method==='eth_chainId'?'0x1':null}),/has not switched/);
 });
+
+
+test('relay provider switching clears authenticated content and avoids duplicate event listeners', () => {
+ const client=new IdentityClient(), handlers={};
+ const provider={on:(event,fn)=>handlers[event]=fn, removeListener:(event)=>delete handlers[event]};
+ client.bindWalletProvider(provider);client.bindWalletProvider(provider);
+ assert.equal(Object.keys(handlers).length,3);
+ client.address='0x1111111111111111111111111111111111111111';client.token='session';client.signer={};
+ handlers.accountsChanged(['0x2222222222222222222222222222222222222222']);
+ assert.equal(client.token,'');assert.equal(client.address,'');assert.equal(client.signer,null);
+ client.address='owner';client.token='session';handlers.chainChanged();assert.equal(client.token,'');
+});
+
+
+test('installed app signs in through the relay provider without navigating away', async () => {
+ const client=new IdentityClient();client.config={chainId:11155111};
+ const previousWindow=globalThis.window, previousSecure=globalThis.isSecureContext;
+ globalThis.window={};globalThis.isSecureContext=true;
+ const address='0x1111111111111111111111111111111111111111';
+ let connects=0;
+ const provider={request:async({method})=>{
+  if(method==='eth_chainId')return '0xaa36a7';
+  if(method==='eth_accounts'||method==='eth_requestAccounts')return [address];
+  throw new Error('Unexpected request '+method);
+ },on:()=>{}};
+ client.mobileWalletClient={status:'disconnected',connect:async options=>{assert.deepEqual(options.chainIds,['0xaa36a7']);connects++;},getProvider:()=>provider};
+ client.signIn=async()=>{client.address=await client.signer.getAddress();client.token='verified-test-session';};
+ try{await client.connectWallet();assert.equal(connects,1);assert.equal(client.address,address);assert.equal(client.token,'verified-test-session');assert.equal(client.walletProvider,provider);}
+ finally{if(previousWindow===undefined)delete globalThis.window;else globalThis.window=previousWindow;if(previousSecure===undefined)delete globalThis.isSecureContext;else globalThis.isSecureContext=previousSecure;}
+});

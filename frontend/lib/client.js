@@ -19,15 +19,6 @@ export class IdentityClient extends EventTarget {
   async init() {
     this.config = await this.api('/config');
     if (this.config.mode === 'local') this.devWallets = (await this.api('/dev-wallets')).wallets;
-    if (window.ethereum) {
-      window.ethereum.on('accountsChanged', (accounts) => {
-        const newAddress = accounts?.[0] || '';
-        if (!newAddress || (this.address && newAddress.toLowerCase() !== this.address.toLowerCase())) {
-          this.disconnect();
-        }
-      });
-      window.ethereum.on('chainChanged', () => this.disconnect());
-    }
     return this.config;
   }
   async connectDev(index) {
@@ -39,12 +30,43 @@ export class IdentityClient extends EventTarget {
     this.kind = account.label + ' (local)';
     await this.signIn();
   }
+  bindWalletProvider(ethereum) {
+    if (this.walletProvider === ethereum) return;
+    if (this.walletProvider && this.walletHandlers) {
+      for (const [event, handler] of Object.entries(this.walletHandlers)) this.walletProvider.removeListener?.(event, handler);
+    }
+    this.walletProvider = ethereum;
+    this.walletHandlers = {
+      accountsChanged: accounts => {
+        if (this.address && (!accounts?.[0] || accounts[0].toLowerCase() !== this.address.toLowerCase())) this.clear();
+      },
+      chainChanged: () => { if (this.address || this.token) this.clear(); },
+      disconnect: () => this.clear(),
+    };
+    for (const [event, handler] of Object.entries(this.walletHandlers)) ethereum.on?.(event, handler);
+  }
   async connectWallet() {
-    if (!window.ethereum) throw new Error('Install MetaMask to connect a wallet, or use a local demo wallet.');
     await this.disconnect();
-    await window.ethereum.request({method:'eth_requestAccounts'});
-    await this.ensureWalletNetwork(window.ethereum);
-    const provider = new BrowserProvider(window.ethereum);
+    let ethereum = window.ethereum;
+    if (!ethereum) {
+      if (!globalThis.isSecureContext) throw new Error('Installed-app wallet connection requires HTTPS. Use the hosted app.');
+      if (Number(this.config.chainId) !== 11155111) throw new Error('Use local demo wallets for local rehearsal, or the HTTPS Sepolia app for MetaMask.');
+      if (!this.mobileWalletClient) {
+        const {createEVMClient} = await import('@metamask/connect-evm');
+        this.mobileWalletClient = await createEVMClient({
+          dapp: {name: document.title.includes('Atlas') ? 'Atlas PS67' : 'Sovereign PS67', url: location.origin},
+          api: {supportedNetworks: {'0xaa36a7': 'https://ethereum-sepolia-rpc.publicnode.com'}},
+          analytics: {enabled: false},
+        });
+      }
+      await this.mobileWalletClient.connect({chainIds: ['0xaa36a7']});
+      ethereum = this.mobileWalletClient.getProvider();
+    } else {
+      await ethereum.request({method:'eth_requestAccounts'});
+    }
+    this.bindWalletProvider(ethereum);
+    await this.ensureWalletNetwork(ethereum);
+    const provider = new BrowserProvider(ethereum);
     this.signer = await provider.getSigner(); this.kind = 'MetaMask';
     await this.signIn();
   }
@@ -76,8 +98,12 @@ export class IdentityClient extends EventTarget {
   }
   clear() { this.signer = null; this.address = ''; this.token = ''; this.kind = ''; this.dispatchEvent(new Event('change')); }
   async disconnect() {
-    if (this.token) { try { await this.api('/auth/logout', {}); } catch {} }
+    const previousToken = this.token;
     this.clear();
+    if (previousToken) {
+      try { await fetch(API_BASE + '/auth/logout', {method:'POST', headers:{'Content-Type':'application/json', Authorization:'Bearer '+previousToken}, body:'{}', cache:'no-store'}); } catch {}
+    }
+    if (this.mobileWalletClient?.status === 'connected') { try { await this.mobileWalletClient.disconnect(); } catch {} }
   }
   contract() {
     if (!this.signer || !this.token) throw new Error('Connect a wallet first.');
