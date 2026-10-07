@@ -10,6 +10,8 @@ for(const [bin,args] of [
   [process.execPath,['scripts/build-ui.mjs']],
   [process.execPath,['--test',...nodeTests]],
   [python,['tests/privacy.py']],
+  [python,['tests/assistant_authorization.py']],
+  [python,['tests/test_ipfs_adapter.py']],
   [python,['tests/integration.py']],
 ]) {
   const result=spawnSync(bin,args,{cwd:root,stdio:'inherit',windowsHide:true});

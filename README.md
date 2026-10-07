@@ -178,3 +178,12 @@ Requirements come from uploaded PS67, handbook and group instructions.
 Technical references: [Kubo RPC](https://docs.ipfs.tech/reference/kubo/rpc/),
 [Kubo setup](https://docs.ipfs.tech/install/command-line/),
 [ethers v6](https://docs.ethers.org/v6/getting-started/).
+
+## Privacy Assistant (optional)
+
+Sovereign includes an opt-in local privacy assistant that suggests safer visibility
+settings for fields the owner selects before publishing. It is OFF by default.
+Recommendations are advisory; access remains controlled by the authenticated
+backend and on-chain follower state. No profile text is sent to an external AI
+provider. See [Privacy Assistant](docs/PRIVACY_ASSISTANT.md) for consent, local rules,
+limitations and the isolated `npm run dev:privacy` rehearsal.

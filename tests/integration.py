@@ -1,11 +1,11 @@
 """Run against npm run dev and a real Kubo IPFS node. Uses local fake wallets only."""
-import json, time, unittest
+import json, time, unittest, os
 import requests
 from eth_account import Account
 from eth_account.messages import encode_defunct
 from web3 import Web3
 
-BASE='http://127.0.0.1:5000'
+BASE=os.getenv('PS67_TEST_API','http://127.0.0.1:5000')
 class BaseFlow(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
