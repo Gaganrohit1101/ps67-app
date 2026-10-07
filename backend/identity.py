@@ -26,9 +26,12 @@ IPFS_API = os.getenv('IPFS_API', 'http://127.0.0.1:5001/api/v0').rstrip('/')
 IPFS_AUTH = os.getenv('IPFS_AUTH', '').strip()
 PINATA_JWT = os.getenv('PINATA_JWT', '').strip()
 PINATA_GATEWAY = os.getenv('PINATA_GATEWAY', 'gateway.pinata.cloud').strip().replace('https://', '').replace('http://', '').rstrip('/')
+PINATA_GATEWAY_TOKEN = os.getenv('PINATA_GATEWAY_TOKEN', '').strip()
 EXPLORER_URL = os.getenv('EXPLORER_URL', '').rstrip('/')
 DATA_DIR = Path(os.getenv('DATA_DIR', ROOT / '.data'))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
+IPFS_CACHE = DATA_DIR / 'ipfs_cache'
+IPFS_CACHE.mkdir(parents=True, exist_ok=True)
 KEY_FILE = DATA_DIR / 'privacy.key'
 if not KEY_FILE.exists():
     try:
@@ -96,34 +99,46 @@ def ipfs_headers():
     if IPFS_AUTH: headers['Authorization'] = IPFS_AUTH
     return headers
 def ipfs_add(document):
+    payload = json.dumps(document, separators=(',', ':'), ensure_ascii=False).encode()
     if PINATA_JWT:
         r = requests.post('https://api.pinata.cloud/pinning/pinJSONToIPFS',
             headers={'Authorization': f'Bearer {PINATA_JWT}', 'Content-Type': 'application/json'},
             json={'pinataContent': document, 'pinataMetadata': {'name': f'ps67-profile-{CHAIN_ID}'}},
             timeout=30)
         r.raise_for_status()
-        return r.json()['IpfsHash']
-    payload=json.dumps(document,separators=(',',':'),ensure_ascii=False).encode()
-    r=requests.post(IPFS_API+'/add',params={'pin':'true','cid-version':'1'},files={'file':('profile.json',payload,'application/json')},headers=ipfs_headers(),timeout=30)
-    r.raise_for_status()
-    return r.json()['Hash']
+        cid = r.json()['IpfsHash']
+    else:
+        r=requests.post(IPFS_API+'/add',params={'pin':'true','cid-version':'1'},files={'file':('profile.json',payload,'application/json')},headers=ipfs_headers(),timeout=30)
+        r.raise_for_status()
+        cid = r.json()['Hash']
+    try: (IPFS_CACHE / cid).write_bytes(payload)
+    except Exception: pass
+    return cid
 def ipfs_read(cid):
-    # Kubo's CIDv1 adds use raw-leaf roots (bafk...) for small JSON documents,
-    # and DAG-PB roots (bafy...) for larger ones.
     if not re.fullmatch(r'(baf[a-z2-7]{20,100}|Qm[a-zA-Z0-9]{44})',cid): raise ValueError('Unsupported IPFS CID in profile pointer.')
+    cache_file = IPFS_CACHE / cid
+    if cache_file.exists():
+        try: return json.loads(cache_file.read_bytes())
+        except Exception: pass
     if PINATA_JWT:
-        urls = [f'https://{PINATA_GATEWAY}/ipfs/{cid}', f'https://ipfs.io/ipfs/{cid}', f'https://dweb.link/ipfs/{cid}']
+        headers = {'Accept': 'application/json'}
+        if PINATA_GATEWAY_TOKEN: headers['x-pinata-gateway-token'] = PINATA_GATEWAY_TOKEN
+        token_param = f'?pinataGatewayToken={PINATA_GATEWAY_TOKEN}' if PINATA_GATEWAY_TOKEN else ''
+        urls = [f'https://{PINATA_GATEWAY}/ipfs/{cid}{token_param}', f'https://gateway.pinata.cloud/ipfs/{cid}{token_param}']
         last_error = None
         for u in urls:
             try:
-                r = requests.get(u, timeout=20, stream=True)
+                r = requests.get(u, headers=headers, timeout=20, stream=True)
                 if r.ok:
                     chunks=[]; size=0
                     for chunk in r.iter_content(4096):
                         size+=len(chunk)
                         if size>100000: raise ValueError('Profile is too large.')
                         chunks.append(chunk)
-                    return json.loads(b''.join(chunks))
+                    data = json.loads(b''.join(chunks))
+                    try: (IPFS_CACHE / cid).write_bytes(json.dumps(data,separators=(',',':'),ensure_ascii=False).encode())
+                    except Exception: pass
+                    return data
             except Exception as e:
                 last_error = e
                 continue
@@ -135,7 +150,10 @@ def ipfs_read(cid):
             size+=len(chunk)
             if size>100000: raise ValueError('Profile is too large.')
             chunks.append(chunk)
-        return json.loads(b''.join(chunks))
+        data = json.loads(b''.join(chunks))
+        try: (IPFS_CACHE / cid).write_bytes(json.dumps(data,separators=(',',':'),ensure_ascii=False).encode())
+        except Exception: pass
+        return data
 def aad(owner,label,visibility): return f'ps67:1:{CHAIN_ID}:{owner.lower()}:{label}:{visibility}'.encode()
 def seal(owner,label,item):
     if not isinstance(item,dict) or item.get('visibility') not in VISIBILITY: raise ValueError('Choose valid field visibility.')

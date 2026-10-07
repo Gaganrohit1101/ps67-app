@@ -33,9 +33,8 @@ class TestIPFSAdapter(unittest.TestCase):
             mock_get = MagicMock()
             mock_get.return_value.ok = True
             mock_get.return_value.iter_content.return_value = [b'{"schemaVersion": 1, "did": "test"}']
-            with patch('requests.get', mock_get):
-                doc = identity.ipfs_read(test_cid)
-                self.assertEqual(doc, {"schemaVersion": 1, "did": "test"})
+            doc = identity.ipfs_read(test_cid)
+            self.assertEqual(doc, sample_doc)
 
             # Test Pinata health
             mock_auth = MagicMock()
