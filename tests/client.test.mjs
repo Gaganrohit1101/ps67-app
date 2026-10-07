@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { IdentityClient } from '../frontend/lib/client.js';
+import { IdentityClient, friendlyError } from '../frontend/lib/client.js';
 
 test('a signature finishing after disconnect never restores the old wallet session', async () => {
   const client = new IdentityClient();
@@ -79,3 +79,9 @@ test('installed app signs in through the relay provider without navigating away'
  try{await client.connectWallet();assert.equal(connects,1);assert.equal(client.address,address);assert.equal(client.token,'verified-test-session');assert.equal(client.walletProvider,provider);}
  finally{if(previousWindow===undefined)delete globalThis.window;else globalThis.window=previousWindow;if(previousSecure===undefined)delete globalThis.isSecureContext;else globalThis.isSecureContext=previousSecure;}
 });
+
+ test('wallet errors identify the failed RPC without leaking request data',()=>{
+ const result=friendlyError({code:'UNKNOWN_ERROR',payload:{method:'personal_sign',params:['secret-challenge']},error:{code:-32603,message:'sensitive'}});
+ assert.match(result,/personal_sign/);assert.match(result,/-32603/);assert.doesNotMatch(result,/secret|sensitive/);
+ assert.match(friendlyError({code:'UNKNOWN_ERROR',error:{code:4001}}),/cancelled/);
+ });

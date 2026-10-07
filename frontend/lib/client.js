@@ -160,7 +160,14 @@ export class IdentityClient extends EventTarget {
 }
 
 export function friendlyError(error) {
-  if (error.code === 'ACTION_REJECTED' || error.code === 4001) return 'The wallet request was cancelled. Your on-chain profile was not changed.';
+  if (error.code === 'ACTION_REJECTED' || error.code === 4001 || error.error?.code === 4001 || error.info?.error?.code === 4001) return 'The wallet request was cancelled. Your on-chain profile was not changed.';
+  if (error.code === 'UNKNOWN_ERROR' || error.shortMessage === 'could not coalesce error') {
+    const method = error.payload?.method || error.info?.payload?.method;
+    const allowed = ['personal_sign','eth_accounts','eth_requestAccounts','eth_chainId','wallet_switchEthereumChain','eth_sendTransaction'];
+    const request = allowed.includes(method) ? method : 'connection';
+    const code = error.error?.code ?? error.info?.error?.code;
+    return `MetaMask request failed: ${request}${Number.isInteger(code) ? ' (code '+code+')' : ''}. Reopen MetaMask, check Sepolia, and retry. Connection is not complete.`;
+  }
   const msg = error.shortMessage || error.message || '';
   if (msg.includes('has not created') || msg.includes('No profile exists') || msg.includes('PROFILE_NOT_FOUND')) return 'No profile exists for this wallet yet.';
   if (msg.includes('Wallet changed') || msg.includes('Session expired') || msg.includes('SESSION_EXPIRED') || msg.includes('Connect and sign in') || msg.includes('401')) return 'Wallet changed. Sign in again.';
