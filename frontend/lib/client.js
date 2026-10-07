@@ -39,12 +39,26 @@ export class IdentityClient extends EventTarget {
   async connectWallet() {
     if (!window.ethereum) throw new Error('Install MetaMask to connect a wallet, or use a local demo wallet.');
     await this.disconnect();
+    await window.ethereum.request({ method: 'eth_requestAccounts' });
+    await this.ensureWalletNetwork(window.ethereum);
+    // Construct after switching: a provider created earlier can retain the old network.
     const provider = new BrowserProvider(window.ethereum);
-    await provider.send('eth_requestAccounts', []);
-    const network = await provider.getNetwork();
-    if (Number(network.chainId) !== this.config.chainId) throw new Error(`Switch MetaMask to chain ${this.config.chainId} and reconnect.`);
     this.signer = await provider.getSigner(); this.kind = 'MetaMask';
     await this.signIn();
+  }
+  async ensureWalletNetwork(ethereum) {
+    const expected = Number(this.config.chainId);
+    const current = await ethereum.request({ method: 'eth_chainId' });
+    if (Number(current) !== expected) {
+      try {
+        await ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x' + expected.toString(16) }] });
+      } catch (error) {
+        if (error.code === 4902) throw new Error('Enable Ethereum Sepolia in MetaMask, then reconnect.');
+        throw error;
+      }
+    }
+    const actual = await ethereum.request({ method: 'eth_chainId' });
+    if (Number(actual) !== expected) throw new Error('The wallet has not switched networks yet. Approve the network switch in MetaMask, then reconnect.');
   }
   async signIn() {
     const signingWallet = this.signer;

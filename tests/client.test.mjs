@@ -36,3 +36,17 @@ test('real transaction reporting covers pending, confirmed, rejected and reverte
     assert.equal(failed[0].state,'pending');assert.equal(failed.at(-1).state,'failed');
   }
 });
+
+
+test('mobile connection requests Sepolia switch and verifies the wallet network', async () => {
+  const client=new IdentityClient();client.config={chainId:11155111};
+  let chain='0x1', switches=0;
+  await client.ensureWalletNetwork({request:async({method,params})=>{
+    if(method==='eth_chainId')return chain;
+    assert.equal(method,'wallet_switchEthereumChain');assert.equal(params[0].chainId,'0xaa36a7');switches++;chain=params[0].chainId;
+  }});
+  assert.equal(switches,1);
+  await client.ensureWalletNetwork({request:async({method})=>{assert.equal(method,'eth_chainId');return '0xaa36a7';}});
+  await assert.rejects(client.ensureWalletNetwork({request:async({method})=>{if(method==='eth_chainId')return '0x1';throw Object.assign(new Error('Rejected'),{code:4001});}}),/Rejected/);
+  await assert.rejects(client.ensureWalletNetwork({request:async({method})=>method==='eth_chainId'?'0x1':null}),/has not switched/);
+});
