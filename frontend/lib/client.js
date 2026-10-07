@@ -12,7 +12,7 @@ export class IdentityClient extends EventTarget {
       headers, body: data === undefined ? undefined : JSON.stringify(data), cache: 'no-store' }); }
     catch { throw new Error('The profile service is unavailable. Start the local services and retry.'); }
     const result = await response.json();
-    if (authenticated && sentToken !== this.token) throw new Error('The wallet changed during this request. Please reload the profile.');
+    if (authenticated && sentToken !== this.token) throw new Error('Wallet changed. Sign in again.');
     if (!response.ok) throw new Error(result.error || result.ipfsError || result.chainError || 'The service is not ready. Check the connection status.');
     return result;
   }
@@ -20,8 +20,13 @@ export class IdentityClient extends EventTarget {
     this.config = await this.api('/config');
     if (this.config.mode === 'local') this.devWallets = (await this.api('/dev-wallets')).wallets;
     if (window.ethereum) {
-      window.ethereum.on('accountsChanged', () => this.clear());
-      window.ethereum.on('chainChanged', () => this.clear());
+      window.ethereum.on('accountsChanged', (accounts) => {
+        const newAddress = accounts?.[0] || '';
+        if (!newAddress || (this.address && newAddress.toLowerCase() !== this.address.toLowerCase())) {
+          this.disconnect();
+        }
+      });
+      window.ethereum.on('chainChanged', () => this.disconnect());
     }
     return this.config;
   }
@@ -117,7 +122,13 @@ export class IdentityClient extends EventTarget {
 
 export function friendlyError(error) {
   if (error.code === 'ACTION_REJECTED' || error.code === 4001) return 'The wallet request was cancelled. Your on-chain profile was not changed.';
-  return error.shortMessage || error.message || 'Something went wrong. Please retry.';
+  const msg = error.shortMessage || error.message || '';
+  if (msg.includes('has not created') || msg.includes('No profile exists') || msg.includes('PROFILE_NOT_FOUND')) return 'No profile exists for this wallet yet.';
+  if (msg.includes('Wallet changed') || msg.includes('Session expired') || msg.includes('SESSION_EXPIRED') || msg.includes('Connect and sign in') || msg.includes('401')) return 'Wallet changed. Sign in again.';
+  if (msg.includes('decentralized storage') || msg.includes('IPFS') || msg.includes('CID')) return 'Profile content could not be retrieved.';
+  if (msg.includes('Switch MetaMask') || msg.includes('wrong network') || msg.includes('configured chain')) return 'Switch MetaMask to Ethereum Sepolia.';
+  if (msg.includes('service is unavailable') || msg.includes('Failed to fetch') || msg.includes('network service unavailable')) return 'Backend temporarily unavailable.';
+  return msg || 'Could not load this profile.';
 }
 export function shortAddress(address) { return address ? address.slice(0, 6) + '…' + address.slice(-4) : ''; }
 export function el(tag, text = '', className = '') {

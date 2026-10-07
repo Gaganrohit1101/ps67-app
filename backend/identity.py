@@ -33,6 +33,12 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 IPFS_CACHE = DATA_DIR / 'ipfs_cache'
 IPFS_CACHE.mkdir(parents=True, exist_ok=True)
 KEY_FILE = DATA_DIR / 'privacy.key'
+PRIVACY_KEY_ENV = os.getenv('PRIVACY_KEY', '').strip()
+if PRIVACY_KEY_ENV:
+    try:
+        kb = bytes.fromhex(PRIVACY_KEY_ENV) if len(PRIVACY_KEY_ENV) == 64 else base64.b64decode(PRIVACY_KEY_ENV)
+        if len(kb) == 32: KEY_FILE.write_bytes(kb)
+    except Exception: pass
 if not KEY_FILE.exists():
     try:
         with KEY_FILE.open('xb') as f: f.write(AESGCM.generate_key(bit_length=256))
@@ -127,7 +133,7 @@ def ipfs_read(cid):
         headers = {'Accept': 'application/json'}
         if PINATA_GATEWAY_TOKEN: headers['x-pinata-gateway-token'] = PINATA_GATEWAY_TOKEN
         token_param = f'?pinataGatewayToken={PINATA_GATEWAY_TOKEN}' if PINATA_GATEWAY_TOKEN else ''
-        urls = [f'https://{PINATA_GATEWAY}/ipfs/{cid}{token_param}', f'https://gateway.pinata.cloud/ipfs/{cid}{token_param}']
+        urls = [f'https://{PINATA_GATEWAY}/ipfs/{cid}{token_param}', f'https://gateway.pinata.cloud/ipfs/{cid}{token_param}', f'https://ipfs.io/ipfs/{cid}', f'https://cloudflare-ipfs.com/ipfs/{cid}']
         last_error = None
         for u in urls:
             try:
@@ -145,7 +151,7 @@ def ipfs_read(cid):
             except Exception as e:
                 last_error = e
                 continue
-        raise last_error or RuntimeError('Could not retrieve profile from IPFS gateway.')
+        raise last_error or RuntimeError(f'Could not retrieve profile from decentralized storage (CID: {cid[:12]}...).')
     with requests.post(IPFS_API+'/cat',params={'arg':cid},headers=ipfs_headers(),timeout=25,stream=True) as r:
         r.raise_for_status()
         chunks=[]; size=0
@@ -181,8 +187,13 @@ def read_profile(owner,who):
         raise ValueError('Stored profile does not match this on-chain identity.')
     is_owner=bool(who and who.lower()==owner.lower())
     is_follower=bool(who and contract.functions.isFollowing(address(who),owner).call())
-    fields={name:reveal(owner,name,item,is_owner,is_follower) for name,item in doc.get('fields',{}).items() if name in FIELD_NAMES}
-    posts=[{'id':p['id'],'createdAt':p['createdAt'],**reveal(owner,'post:'+p['id'],p,is_owner,is_follower)} for p in doc.get('posts',[])]
+    def safe_reveal(label,item):
+        try: return reveal(owner,label,item,is_owner,is_follower)
+        except Exception as e:
+            app.logger.warning('Decryption skipped for %s (%s): %s', label, owner, type(e).__name__)
+            return {'visibility':item.get('visibility','private'),'locked':True,'unreadable':True}
+    fields={name:safe_reveal(name,item) for name,item in doc.get('fields',{}).items() if name in FIELD_NAMES}
+    posts=[{'id':p['id'],'createdAt':p['createdAt'],**safe_reveal('post:'+p['id'],p)} for p in doc.get('posts',[])]
     return {'schemaVersion':1,'owner':owner,'did':did(owner),'chainId':CHAIN_ID,'cid':cid,'fields':fields,'posts':posts,
         'isOwner':is_owner,'isFollower':is_follower,'followers':contract.functions.getFollowers(owner).call(),'following':contract.functions.getFollowing(owner).call()}
 @app.after_request
@@ -294,8 +305,13 @@ def errors(error):
     if isinstance(error,HTTPException): return jsonify(error=error.description),error.code
     if isinstance(error,PermissionError): return jsonify(error=str(error)),401
     if isinstance(error,ValueError): return jsonify(error=str(error)),400
-    if isinstance(error,requests.RequestException): return jsonify(error='IPFS unavailable. Start the node and try again.'),503
-    app.logger.error('Request failed: %s',type(error).__name__)
+    if isinstance(error,requests.RequestException): return jsonify(error='Storage or network service unavailable. Please retry in a moment.'),503
+    if isinstance(error,RuntimeError):
+        msg = str(error)
+        if 'storage' in msg or 'IPFS' in msg or 'gateway' in msg: return jsonify(error=msg),502
+        if 'chain' in msg or 'contract' in msg or 'RPC' in msg: return jsonify(error=msg),503
+        return jsonify(error=msg),500
+    app.logger.error('Request failed: %s (%s)',type(error).__name__,str(error))
     return jsonify(error='Cannot complete request. Check chain, storage and gateway configuration.'),503
 if DM_ENABLED:
     from dm import install_dm

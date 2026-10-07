@@ -28,6 +28,8 @@ services:
         sync: false
       - key: PINATA_GATEWAY
         value: gateway.pinata.cloud
+      - key: PRIVACY_KEY
+        sync: false
       - key: IPFS_API
         sync: false
 

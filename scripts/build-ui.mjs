@@ -8,9 +8,9 @@ export async function buildUI() {
   for(const app of ['sovereign','atlas']) {
     await build({configFile:false,root:path.join(root,'ui',app),plugins:[react(),tailwind()],
       define:{
-        'import.meta.env.VITE_API_BASE': JSON.stringify(process.env.VITE_API_BASE || ''),
-        'import.meta.env.VITE_ATLAS_URL': JSON.stringify(process.env.VITE_ATLAS_URL || ''),
-        'import.meta.env.VITE_SOVEREIGN_URL': JSON.stringify(process.env.VITE_SOVEREIGN_URL || ''),
+        'import.meta.env.VITE_API_BASE': JSON.stringify(process.env.VITE_API_BASE || 'https://ps67-backend.onrender.com'),
+        'import.meta.env.VITE_ATLAS_URL': JSON.stringify(process.env.VITE_ATLAS_URL || 'https://ps67-atlas.onrender.com'),
+        'import.meta.env.VITE_SOVEREIGN_URL': JSON.stringify(process.env.VITE_SOVEREIGN_URL || 'https://ps67-sovereign.onrender.com'),
       },
       build:{outDir:path.join(root,'build',app),emptyOutDir:true},logLevel:'warn'});
     console.log(`${app}: React frontend built.`);

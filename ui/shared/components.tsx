@@ -4,15 +4,15 @@ import { useTheme, type Theme } from './ThemeContext';
 import { audienceLabels, type Visibility } from './types';
 export const appURL = (port: number) => {
   const meta = typeof import.meta !== 'undefined' ? (import.meta as any) : null;
+  const envAtlas = meta?.env?.VITE_ATLAS_URL || (typeof process !== 'undefined' && process.env?.VITE_ATLAS_URL) || (globalThis as any).__ATLAS_URL__;
+  const envSovereign = meta?.env?.VITE_SOVEREIGN_URL || (typeof process !== 'undefined' && process.env?.VITE_SOVEREIGN_URL) || (globalThis as any).__SOVEREIGN_URL__;
   if (port === 8001) {
-    if (typeof process !== 'undefined' && process.env?.VITE_ATLAS_URL) return process.env.VITE_ATLAS_URL;
-    if (meta?.env?.VITE_ATLAS_URL) return meta.env.VITE_ATLAS_URL;
-    if ((globalThis as any).__ATLAS_URL__) return (globalThis as any).__ATLAS_URL__;
+    if (envAtlas) return envAtlas;
+    if (globalThis.location && location.hostname.includes('ps67-sovereign.onrender.com')) return 'https://ps67-atlas.onrender.com';
   }
   if (port === 8000) {
-    if (typeof process !== 'undefined' && process.env?.VITE_SOVEREIGN_URL) return process.env.VITE_SOVEREIGN_URL;
-    if (meta?.env?.VITE_SOVEREIGN_URL) return meta.env.VITE_SOVEREIGN_URL;
-    if ((globalThis as any).__SOVEREIGN_URL__) return (globalThis as any).__SOVEREIGN_URL__;
+    if (envSovereign) return envSovereign;
+    if (globalThis.location && location.hostname.includes('ps67-atlas.onrender.com')) return 'https://ps67-sovereign.onrender.com';
   }
   return globalThis.location ? `${location.protocol}//${location.hostname}:${port}` : `http://127.0.0.1:${port}`;
 };
