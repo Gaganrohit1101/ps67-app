@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sovereign-static-v1';
+const CACHE_NAME = 'sovereign-static-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -13,6 +13,7 @@ const EXCLUDED_PATTERNS = [
   /\/auth\//,
   /\/profiles\//,
   /\/identities\//,
+  /\/dm(?:\/|$)/,
   /\/config/,
   /\/health/,
   /\/rpc/
@@ -29,7 +30,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+        keys.filter((key) => key.startsWith('sovereign-static-') && key !== CACHE_NAME).map((key) => caches.delete(key))
       )
     )
   );

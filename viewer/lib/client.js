@@ -11,7 +11,9 @@ export class IdentityClient extends EventTarget {
     try { response = await fetch(API_BASE + route, { method: data === undefined ? 'GET' : 'POST',
       headers, body: data === undefined ? undefined : JSON.stringify(data), cache: 'no-store' }); }
     catch { throw new Error('The profile service is unavailable. Start the local services and retry.'); }
-    const result = await response.json();
+    let result;
+    try { result = await response.json(); }
+    catch { throw new Error('The profile service returned an invalid response. Please retry when the service is available.'); }
     if (authenticated && sentToken !== this.token) throw new Error('The wallet changed during this request. Please reload the profile.');
     if (!response.ok) throw new Error(result.error || result.ipfsError || result.chainError || 'The service is not ready. Check the connection status.');
     return result;

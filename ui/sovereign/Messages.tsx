@@ -39,7 +39,7 @@ export default function Messages(){
   }
   async function load(address:string,valid:()=>boolean){
     setRows([]);setPeer(null);setDraft('');
-    const target=getAddress(address.trim()).toLowerCase();
+    let target:string;try{target=getAddress(address.trim()).toLowerCase();}catch{throw new Error('Enter a valid recipient wallet address (0x followed by 40 hexadecimal characters).');}
     const data=await client.api('/dm/conversations/'+target);
     const other=data.keys.find((k:any)=>k.wallet===target);
     await verifyKey(other,context,target);

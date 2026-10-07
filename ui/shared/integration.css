@@ -17,3 +17,5 @@
 .explorer-header .button-ghost,.explorer-header .wallet-address{color:#e9e6f4}
 
 @media(max-width:760px){.profile-actions{padding-top:52px;min-height:112px;justify-content:flex-start}}
+
+@media(max-width:760px){.bottom-nav.privacy-navigation{grid-template-columns:repeat(5,minmax(0,1fr))}.bottom-nav.privacy-navigation:has(a[href="/messages"]){grid-template-columns:repeat(6,minmax(0,1fr))}}
