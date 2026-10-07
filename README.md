@@ -187,3 +187,10 @@ Recommendations are advisory; access remains controlled by the authenticated
 backend and on-chain follower state. No profile text is sent to an external AI
 provider. See [Privacy Assistant](docs/PRIVACY_ASSISTANT.md) for consent, local rules,
 limitations and the isolated `npm run dev:privacy` rehearsal.
+
+## Optional encrypted DM
+
+Mutual-follow encrypted messaging is available as an opt-in feature.
+Run `npm run dev:dm` for an isolated local rehearsal. Read
+[the security design and test steps](docs/ENCRYPTED_DM_SECURITY.md) and [known limitations](docs/KNOWN_LIMITATIONS.md) before enabling it.
+Browser keys have no recovery or forward secrecy; message ciphertext is stored in container-local SQLite.

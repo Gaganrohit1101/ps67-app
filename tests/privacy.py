@@ -12,6 +12,11 @@ spec=importlib.util.spec_from_file_location('identity',Path(__file__).resolve().
 identity=importlib.util.module_from_spec(spec);spec.loader.exec_module(identity)
 
 class PrivacyTests(unittest.TestCase):
+    def test_dm_is_disabled_by_default(self):
+        client=identity.app.test_client()
+        self.assertFalse(client.get('/config').json['encryptedDm'])
+        self.assertIsNone(client.get('/config').json['dmContext'])
+        self.assertEqual(client.get('/dm/conversations').status_code,404)
     def test_college_does_not_reinterpret_legacy_location_ciphertext(self):
         owner='0x1111111111111111111111111111111111111111'
         legacy=identity.seal(owner,'location',{'value':'Existing location','visibility':'private'})
